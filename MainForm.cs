@@ -98,6 +98,7 @@ namespace NWCTXT2Ly
 		string CurrentDir;
 		string FileNameArg;
 		bool SetSlurComplex = false;
+		double ThisVersion = 0;
 
 		public MainForm(string FileName)
 		{
@@ -322,6 +323,11 @@ namespace NWCTXT2Ly
 				Command = nwc2ly.nwc2ly.GetCommand(ref Line);
 				switch (Command)
 				{
+					case "Version":
+						{
+							ThisVersion = Convert.ToDouble(Line);
+							break;
+						}
 					case "SongInfo":
 						{
 							Headers = DoHeaders(Line);
@@ -359,12 +365,62 @@ namespace NWCTXT2Ly
 						}
 					case "StaffProperties":
 						{
-							string Layer = nwc2ly.nwc2ly.GetPar("Layer", Line);
+							string Layer = "";
+
+							StaffNames[StaffNames.Count - 1].StaffName = StaffNames[StaffNames.Count - 1].Name;
+							string StaffLabel = StaffNames[StaffNames.Count - 1].Name.ToLower();
+
+							string Style = "";
+							if (ThisVersion < 2.5)
+							{
+								Layer = nwc2ly.nwc2ly.GetPar("Layer", Line);
+								if (StaffLabel.IndexOf("solo") > -1)
+								{
+									StaffNames[StaffNames.Count - 1].Type = "Solo";
+								}
+								else
+								{
+									Style = nwc2ly.nwc2ly.GetPar("Style", Line);
+								}
+							}
+							else
+							{
+								{
+									string NextStaffVal = nwc2ly.nwc2ly.GetPar("WithNextStaff", Line, true);
+									if (NextStaffVal.Length > 0)
+									{
+										if (NextStaffVal.IndexOf("Layer") > -1)
+										{
+											Layer = "Y";
+										}
+										if (NextStaffVal.IndexOf("Brace") > -1)
+										{
+											Style = "Upper Grand Staff";
+										}
+										if (NextStaffVal.IndexOf("Bracket") > -1)
+										{
+											if (NextStaffVal.IndexOf("ConnectBars") > -1)
+											{
+												Style = "Orchestral";
+											}
+											else
+											{
+												Style = "Standard";
+											}
+										}
+									}
+								}
+							}
+							if (Style != "")
+							{
+								StaffNames[StaffNames.Count - 1].Type = Style;
+							}
+
 							if (Layer != "")
 							{
-								StaffNames[StaffNames.Count - 1].Layer = Layer;
+								StaffNames[StaffNames.Count - 1].Layer = Layer; // i.e. set _this_ SN.Layer property
 							}
-							StaffNames[StaffNames.Count - 1].StaffName = StaffNames[StaffNames.Count - 1].Name;
+
 							if (StaffNames.Count > 1)
 							{
 								if (StaffNames[StaffNames.Count - 2].Layer == "Y")
@@ -372,20 +428,7 @@ namespace NWCTXT2Ly
 									StaffNames[StaffNames.Count - 1].StaffName = StaffNames[StaffNames.Count - 2].StaffName;
 								}
 							}
-							string StaffLabel = StaffNames[StaffNames.Count - 1].Name.ToLower();
 
-							if (StaffLabel.IndexOf("solo") > 0)
-							{
-								StaffNames[StaffNames.Count - 1].Type = "Solo";
-							}
-							else
-							{
-								string Style = nwc2ly.nwc2ly.GetPar("Style", Line);
-								if (Style != "")
-								{
-									StaffNames[StaffNames.Count - 1].Type = Style;
-								}
-							}
 							if (Line.IndexOf("Visible:N") > -1)
 							{
 								StaffNames[StaffNames.Count - 1].Visible = false;
@@ -754,12 +797,56 @@ namespace NWCTXT2Ly
 					{
 						if (StaffNames[i].Layer == "N")
 						{
-
 							NonOssiaStaves++;
 						}
 					}
 				}
 			}
+			for (int i = 0; i < StaffNames.Count; i++)
+			{
+				Console.WriteLine(StaffNames[i].Name + ", " + StaffNames[i].Type + ", " + StaffNames[i].Layer);
+			}
+
+			if (ThisVersion > 2.4)
+			{
+				for (int i = StaffNames.Count - 1; i > 0; i--)  // Go to 1, since we're looking at the one above
+				{
+					if (StaffNames[i].Type == "Solo")
+					{
+						int j = 1;
+						string NewStaffType = "";
+						while (StaffNames[i - j].Layer == "Y")
+						{
+							j++;
+							if (j > i) break;
+						}
+						if (j <= i)
+						{
+							if (StaffNames[i - j].Type == "Upper Grand Staff")
+							{
+								NewStaffType = "Lower Grand Staff";
+							}
+							else if (StaffNames[i - j].Type != "Solo")
+							{
+								NewStaffType = StaffNames[i - j].Type;
+							}
+							if (NewStaffType.Length > 0)
+							{
+								for (int k = 0; k < j; k++)
+								{
+									StaffNames[i - k].Type = NewStaffType;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			for (int i = 0; i < StaffNames.Count; i++)
+			{
+				Console.WriteLine(StaffNames[i].Name + ", " + StaffNames[i].Type + ", " + StaffNames[i].Layer);
+			}
+
 
 			for (int i = 0; i < StaffNames.Count; i++)
 			{
@@ -1328,10 +1415,10 @@ namespace NWCTXT2Ly
 	{
 		public string FileName;
 		public int Voice;
-		public string Layer;
+		public string Layer = "N";
 		public int LyricLines = 0;
 		public List<string> LyricFileNames = new List<string>();
-		public string Type;
+		public string Type = "Solo";
 		public string Name = "";
 		public string Label = "";
 		public bool bLyricsTop = false;
