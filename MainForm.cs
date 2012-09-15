@@ -280,6 +280,7 @@ namespace NWCTXT2Ly
 		}
 		private void ProcessFile()
 		{
+			bool PreviousStaffLayered = false;
 			btnGo.Enabled = false;
 			Cursor OldCursor = this.Cursor;
 			this.Cursor = Cursors.WaitCursor;
@@ -426,6 +427,11 @@ namespace NWCTXT2Ly
 								if (StaffNames[StaffNames.Count - 2].Layer == "Y")
 								{
 									StaffNames[StaffNames.Count - 1].StaffName = StaffNames[StaffNames.Count - 2].StaffName;
+									PreviousStaffLayered = true;
+								}
+								else
+								{
+									PreviousStaffLayered = false;
 								}
 							}
 
@@ -465,7 +471,7 @@ namespace NWCTXT2Ly
 							{
 								DynamicDir = "Up";
 							}
-							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString() };
+							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString() };
 							nwc2ly.nwc2ly.Main(args);
 							break;
 						}
