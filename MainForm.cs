@@ -360,6 +360,7 @@ namespace NWCTXT2Ly
 							StaffName = StaffName.Replace("/", "");
 							StaffName = StaffName.Replace("\\", "");
 							Staff.Label = nwc2ly.nwc2ly.GetPar("Label", Line);
+							Staff.Abbrev = nwc2ly.nwc2ly.GetPar("LabelAbbr", Line);
 							Staff.FileName = txtName.Text + StaffName;
 							StaffNames.Add(Staff);
 							break;
@@ -371,48 +372,69 @@ namespace NWCTXT2Ly
 							StaffNames[StaffNames.Count - 1].StaffName = StaffNames[StaffNames.Count - 1].Name;
 							string StaffLabel = StaffNames[StaffNames.Count - 1].Name.ToLower();
 
-							string Style = "";
-							if (ThisVersion < 2.5)
+							StaffType Style = StaffType.None;
+							if (Line.IndexOf("|EndingBar:") > -1) // Ugh.  Have to do this since there are 2 StaffProperties lines, and WithNextStaff 
+							// is only ever on one of them, but not always...
 							{
-								Layer = nwc2ly.nwc2ly.GetPar("Layer", Line);
-								if (StaffLabel.IndexOf("solo") > -1)
+								if (StaffLabel.ToLower().IndexOf("solo") > -1)
 								{
-									StaffNames[StaffNames.Count - 1].Type = "Solo";
+									StaffNames[StaffNames.Count - 1].Type = StaffType.Solo;
 								}
 								else
 								{
-									Style = nwc2ly.nwc2ly.GetPar("Style", Line);
-								}
-							}
-							else
-							{
-								{
-									string NextStaffVal = nwc2ly.nwc2ly.GetPar("WithNextStaff", Line, true);
-									if (NextStaffVal.Length > 0)
+
+									if (ThisVersion < 2.5)
 									{
-										if (NextStaffVal.IndexOf("Layer") > -1)
+
+										Layer = nwc2ly.nwc2ly.GetPar("Layer", Line);
+										string StaffStyle = nwc2ly.nwc2ly.GetPar("Style", Line);
+										switch (StaffStyle)
 										{
-											Layer = "Y";
+											case "Standard":
+												Style = StaffType.Standard;
+												break;
+											case "Upper Grand Staff":
+												Style = StaffType.UpperGrandStaff;
+												break;
+											case "Lower Grand Staff":
+												Style = StaffType.LowerGrandStaff;
+												break;
+											case "Orchestral":
+												Style = StaffType.Orchestral;
+												break;
 										}
-										if (NextStaffVal.IndexOf("Brace") > -1)
+									}
+									else
+									{
+										Style = StaffType.NoBracketNext;
+										string NextStaffVal = nwc2ly.nwc2ly.GetPar("WithNextStaff", Line, true);
+										if (NextStaffVal.Length > 0)
 										{
-											Style = "Upper Grand Staff";
-										}
-										if (NextStaffVal.IndexOf("Bracket") > -1)
-										{
-											if (NextStaffVal.IndexOf("ConnectBars") > -1)
+											if (NextStaffVal.IndexOf("Layer") > -1)
 											{
-												Style = "Orchestral";
+												Layer = "Y";
 											}
-											else
+											if (NextStaffVal.IndexOf("Brace") > -1)  // At present, this means we can't have GrandStaff _and_ bracket
 											{
-												Style = "Standard";
+												Style = StaffType.GrandStaffNext;
+											}
+											if (NextStaffVal.IndexOf("Bracket") > -1)
+											{
+												if (NextStaffVal.IndexOf("ConnectBars") > -1)
+												{
+													Style = StaffType.OrchestralNext;
+												}
+												else
+												{
+													Style = StaffType.BracketNext;
+												}
 											}
 										}
 									}
 								}
 							}
-							if (Style != "")
+
+							if (Style != StaffType.None)
 							{
 								StaffNames[StaffNames.Count - 1].Type = Style;
 							}
@@ -467,7 +489,7 @@ namespace NWCTXT2Ly
 							GetNoteInfo(CopyLine);
 							NWCStaffFile.Close();
 							string DynamicDir = "Down";
-							if (StaffNames[StaffNames.Count - 1].Type == "Standard" || StaffNames[StaffNames.Count - 1].Type == "Solo")
+							if (StaffNames[StaffNames.Count - 1].Type == StaffType.Standard || StaffNames[StaffNames.Count - 1].Type == StaffType.Solo)
 							{
 								DynamicDir = "Up";
 							}
@@ -487,7 +509,7 @@ namespace NWCTXT2Ly
 				// The nwctxt processor marks staves with an ossiaStave command with %OssiaStave as the first text
 				if (InputLine.IndexOf("%OssiaStave") == 0)
 				{
-					StaffNames[i].Type = "Ossia";
+					StaffNames[i].Type = StaffType.Ossia;
 					// It places the ossia names with spaces between, so we can use split.
 					string[] OssiaMusic = InputLine.Split(' ');
 					for (int j = 1; j < OssiaMusic.Length; j++)
@@ -543,7 +565,7 @@ namespace NWCTXT2Ly
 						}
 						for (int k = 0; k < StaffNames.Count; k++)  // Look for the stave(s) that contain the actual ossia music
 						{
-							if (StaffNames[k].Type == "Ossia")  // Ignore non-ossia staves
+							if (StaffNames[k].Type == StaffType.Ossia)  // Ignore non-ossia staves
 							{
 								for (int l = 0; l < StaffNames[k].OssiaMusic.Count; l++)  // Loop over all the ossia names
 								{
@@ -701,7 +723,7 @@ namespace NWCTXT2Ly
 
 			for (int i = 0; i < StaffNames.Count; i++)
 			{
-				if (StaffNames[i].Type == "Ossia")
+				if (StaffNames[i].Type == StaffType.Ossia)
 				{
 					LilyPondFile.WriteLine("\\include \"" + StaffNames[i].FileName + ".ly\"");
 
@@ -712,7 +734,7 @@ namespace NWCTXT2Ly
 			{
 				LilyPondFile.WriteLine("\\layout {");
 				LilyPondFile.WriteLine("  \\context {");
-				LilyPondFile.WriteLine("    \\RemoveEmptyStaffContext");
+				LilyPondFile.WriteLine("    \\Staff \\RemoveEmptyStaves");
 				if (chkFirstStave.Checked)
 				{
 					LilyPondFile.WriteLine("    \\override VerticalAxisGroup #'remove-first = ##t");
@@ -754,7 +776,7 @@ namespace NWCTXT2Ly
 		private void WriteLyricDetails(StaffInfo StaffName, ref char LyricName, int StaveNumber)
 		{
 			string FontSize = "";
-			if (StaffName.Type == "Solo")
+			if (StaffName.Type == StaffType.Solo)
 			{
 				if (chkSmall.Checked == true)
 				{
@@ -786,8 +808,8 @@ namespace NWCTXT2Ly
 			string[] VoiceNames = { "\\voiceOne", "\\voiceTwo", "\\voiceThree", "\\voiceFour" };
 			int VoiceNumber = 0;
 			int Staves = 0;
-			string StaveType = "";
-			string NewStaveType;
+			StaffType StaveTypeAbove = StaffType.None;
+			StaffType NewStaveType;
 			string ThisVoiceName;
 			string FontSize = "";
 			string FurnitureSize = "";
@@ -797,7 +819,7 @@ namespace NWCTXT2Ly
 
 			for (int i = 0; i < StaffNames.Count; i++)
 			{
-				if (StaffNames[i].Type != "Ossia")
+				if (StaffNames[i].Type != StaffType.Ossia)
 				{
 					if (StaffNames[i].Visible)
 					{
@@ -815,115 +837,111 @@ namespace NWCTXT2Ly
 
 			if (ThisVersion > 2.4)
 			{
-				for (int i = StaffNames.Count - 1; i > 0; i--)  // Go to 1, since we're looking at the one above
+				for (int i = 0; i < StaffNames.Count; i++)
 				{
-					if (StaffNames[i].Type == "Solo")
+					if (i == 0 && StaffNames[i].Type == StaffType.NoBracketNext)
 					{
-						int j = 1;
-						string NewStaffType = "";
-						while (StaffNames[i - j].Layer == "Y")
-						{
-							j++;
-							if (j > i) break;
-						}
-						if (j <= i)
-						{
-							if (StaffNames[i - j].Type == "Upper Grand Staff")
-							{
-								NewStaffType = "Lower Grand Staff";
-							}
-							else if (StaffNames[i - j].Type != "Solo")
-							{
-								NewStaffType = StaffNames[i - j].Type;
-							}
-							if (NewStaffType.Length > 0)
-							{
-								for (int k = 0; k < j; k++)
-								{
-									StaffNames[i - k].Type = NewStaffType;
-								}
-							}
-						}
+						StaffNames[i].Type = StaffType.Solo;
+					}
+					else if (StaffNames[i].Type == StaffType.NoBracketNext && StaffNames[i - 1].Type == StaffType.NoBracketNext)
+					{
+						StaffNames[i].Type = StaffType.Solo;
 					}
 				}
 			}
 
+			Console.WriteLine("After \"fixing\" the staff types");
 			for (int i = 0; i < StaffNames.Count; i++)
 			{
 				Console.WriteLine(StaffNames[i].Name + ", " + StaffNames[i].Type + ", " + StaffNames[i].Layer);
 			}
 
-
+			bool InGrandStaff = false;
 			for (int i = 0; i < StaffNames.Count; i++)
 			{
 				PianoStaff = false;
-				if (StaffNames[i].Visible && StaffNames[i].Type != "Ossia") 
+				if (StaffNames[i].Visible && StaffNames[i].Type != StaffType.Ossia)
 				{
 					NewStaveType = StaffNames[i].Type;
 					
 					FontSize = "";
 					FurnitureSize = "";
-					if (NewStaveType == "Solo" && chkSmall.Checked == true)
+					if (NewStaveType == StaffType.Solo && chkSmall.Checked == true)
 					{
 						FontSize = " \\tiny ";
 						FurnitureSize = @" \with { \override KeySignature #'font-size = #-2 \override TimeSignature #'font-size = #-2 \override StaffSymbol #'staff-space = #0.8 \override Clef #'font-size = #-2 } ";
 					}
-					if (NewStaveType.IndexOf("Grand Staff") > -1) PianoStaff = true;
-					if (StaveType != NewStaveType)
+					if (NewStaveType == StaffType.UpperGrandStaff || NewStaveType == StaffType.LowerGrandStaff) PianoStaff = true; // Pre 2.5
+					if (NewStaveType == StaffType.GrandStaffNext) // 2.5 and later
 					{
-						if (StaveType != "Upper Grand Staff" && NewStaveType != "Lower Grand Staff")
+						PianoStaff = true;
+						InGrandStaff = true;
+					}
+					else if (NewStaveType != StaffType.NoBracketNext && InGrandStaff)
+					{
+						InGrandStaff = false;
+					}
+					if (StaveTypeAbove != NewStaveType) // i.e. we have to change the type of bracket we're using
+					{
+						if (StaveTypeAbove != StaffType.BracketNext & NewStaveType != StaffType.NoBracketNext)
 						{
-							if (StavesWritten > 0)
+							if (StaveTypeAbove != StaffType.UpperGrandStaff && NewStaveType != StaffType.LowerGrandStaff) // Old is not upper, new is not lower
 							{
-								LilyPondFile.WriteLine("    >>");
-							}
-							switch (NewStaveType)
-							{
-								case "Solo":
-									{
-										LilyPondFile.WriteLine("    <<");
-										break;
-									}
-								case "Standard":
-									{
-										LilyPondFile.WriteLine("    \\new ChoirStaff <<");
-										if (NonOssiaStaves != StaffNames.Count())
+								if (StavesWritten > 0)
+								{
+									LilyPondFile.WriteLine("    >>");
+								}
+								switch (NewStaveType)
+								{
+									case StaffType.Solo:
 										{
-											LilyPondFile.Write(@"      \set ChoirStaff.systemStartDelimiterHierarchy = #'(SystemStartBar (SystemStartBracket ");
-											for (int j = 0; j < NonOssiaStaves; j++)
+											LilyPondFile.WriteLine("    <<");
+											break;
+										}
+									case StaffType.Standard:
+									case StaffType.BracketNext:
+										{
+											LilyPondFile.WriteLine("    \\new ChoirStaff <<");
+											if (NonOssiaStaves != StaffNames.Count())
 											{
-												LilyPondFile.Write(j.ToString() + " ");
+												LilyPondFile.Write(@"      \set ChoirStaff.systemStartDelimiterHierarchy = #'(SystemStartBar (SystemStartBracket ");
+												for (int j = 0; j < NonOssiaStaves; j++)
+												{
+													LilyPondFile.Write(j.ToString() + " ");
+												}
+												LilyPondFile.WriteLine(") )");
 											}
-											LilyPondFile.WriteLine(") )");
+											LilyPondFile.WriteLine("      \\override ChoirStaff.SystemStartBracket #'collapse-height = #1");
+											LilyPondFile.WriteLine("      \\override Score.SystemStartBar #'collapse-height = #1");
+											break;
 										}
-										LilyPondFile.WriteLine("      \\override ChoirStaff.SystemStartBracket #'collapse-height = #1");
-										LilyPondFile.WriteLine("      \\override Score.SystemStartBar #'collapse-height = #1");
-										break;
-									}
-								case "Orchestral":
-									{
-										LilyPondFile.WriteLine("    \\new StaffGroup <<");
-										break;
-									}
-								case "Upper Grand Staff":
-								case "Lower Grand Staff":
-									{
-										LilyPondFile.WriteLine("    \\new PianoStaff <<");
-										LilyPondFile.WriteLine("      \\set PianoStaff.connectArpeggios = ##t");
-										if (chkLabel.Checked)
+									case StaffType.Orchestral:
+									case StaffType.OrchestralNext:
 										{
-											LilyPondFile.WriteLine("      \\set PianoStaff.instrumentName = #\"Piano\"");
+											LilyPondFile.WriteLine("    \\new StaffGroup <<");
+											break;
 										}
-										break;
-									}
-								default:
-									{
-										break;
-									}
+									case StaffType.UpperGrandStaff:
+									case StaffType.LowerGrandStaff:
+									case StaffType.GrandStaffNext:
+										{
+											LilyPondFile.WriteLine("    \\new PianoStaff <<");
+											LilyPondFile.WriteLine("      \\set PianoStaff.connectArpeggios = ##t");
+											if (chkLabel.Checked)
+											{
+												LilyPondFile.WriteLine("      \\set PianoStaff.instrumentName = #\"Piano\"");
+											}
+											break;
+										}
+									default:
+										{
+											break;
+										}
 
+								}
 							}
 						}
-						StaveType = NewStaveType;
+						StaveTypeAbove = NewStaveType;
 					}
 					ThisVoiceName = "";
 					Layer = StaffNames[i].Layer;
@@ -931,7 +949,7 @@ namespace NWCTXT2Ly
 					string NeutralDirection = "";
 					if (chkMelody.Checked)
 					{
-						if (StaffNames[i].Type == "Solo" || StaffNames[i].Type == "Standard")
+						if (StaffNames[i].Type == StaffType.Solo || StaffNames[i].Type == StaffType.Standard)
 						{
 							MelodyEngraver = "\\with { \\consists \"Melody_engraver\" }";
 							NeutralDirection = "\\override Stem #'neutral-direction = #'()";
@@ -977,7 +995,14 @@ namespace NWCTXT2Ly
 						{
 							if (!PianoStaff)
 							{
-								LilyPondFile.WriteLine("        \\set Staff.shortInstrumentName = #" + StaffNames[i].StaffName);
+								if (StaffNames[1].Abbrev != "")
+								{
+									LilyPondFile.WriteLine("        \\set Staff.shortInstrumentName = #" + StaffNames[i].Abbrev);
+								}
+								else
+								{
+									LilyPondFile.WriteLine("        \\set Staff.shortInstrumentName = #" + StaffNames[i].StaffName);
+								}
 							}
 						}
 
@@ -1424,9 +1449,10 @@ namespace NWCTXT2Ly
 		public string Layer = "N";
 		public int LyricLines = 0;
 		public List<string> LyricFileNames = new List<string>();
-		public string Type = "Solo";
+		public StaffType Type = StaffType.None;
 		public string Name = "";
 		public string Label = "";
+		public string Abbrev = "";
 		public bool bLyricsTop = false;
 		public bool Visible = true;
 		public string StaffName = "";
@@ -1443,5 +1469,20 @@ namespace NWCTXT2Ly
 		public int OssiaPiece;
 		public bool TopOfLayer = true;
 		public bool BottomOfLayer = true;
+	}
+	public enum StaffType
+	{
+		None,
+		Solo,
+		Standard,
+		Ossia,
+		Orchestral,
+		UpperGrandStaff,
+		LowerGrandStaff,
+		NoBracketNext,
+		WithNextStaff,
+		GrandStaffNext,
+		OrchestralNext,
+		BracketNext
 	}
 }
