@@ -1107,7 +1107,7 @@ namespace NWCTXT2Ly
 			Regex FinalHyphen = new Regex(@"([A-Za-z]*)(\s*--\s*})");
 			Regex FirstHyphen = new Regex(@"({\s*--\s*)([A-Za-z,\.;:\)\!]*)");
 			Regex FindMarkup = new Regex(@"(<m)([1-9])(>)([^\s^-]*)");
-			Regex FindVerse = new Regex(@"<verse\(([0-9])\)>");
+			Regex FindVerse = new Regex(@"<verse\(([\w]+)\)>");
 			Regex FindSuspendOutput = new Regex(@"<sus>.*?</sus>", RegexOptions.Singleline);
 
 			int LyricCount = 0;
@@ -1261,8 +1261,14 @@ namespace NWCTXT2Ly
 					string NewStanzaNum = VersePosMatch.Result("$1");
 					if (NewStanzaNum != "")
 					{
-						StanzaNum = int.Parse(VersePosMatch.Result("$1"));
-						Input = Input.Replace("<verse(" + StanzaNum.ToString() + ")>", " \\set stanza = #\"" + StanzaNum.ToString() + "\" \r\n");
+						if (int.TryParse(NewStanzaNum, out StanzaNum))
+						{
+							Input = Input.Replace("<verse(" + StanzaNum.ToString() + ")>", " \\set stanza = #\"" + StanzaNum.ToString() + "\" \r\n");
+						}
+						else
+						{
+							Input = Input.Replace("<verse(" + NewStanzaNum + ")>", " \\set stanza = #\"" + NewStanzaNum + "\" \r\n");
+						}
 					}
 					VersePosMatch = FindVerse.Match(Input);
 				}
