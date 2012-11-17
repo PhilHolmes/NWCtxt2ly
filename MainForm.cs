@@ -278,10 +278,10 @@ namespace NWCTXT2Ly
 		{
 			ProcessFile();
 		}
-		private string GetDynDir()
+		private string GetDynDir(int WhichStaff)
 		{
 			string DynamicDir = "Down";
-			StaffType ThisStaffType = StaffNames[StaffNames.Count - 1].Type;
+			StaffType ThisStaffType = StaffNames[WhichStaff].Type;
 			if (ThisVersion < 2.5)
 			{
 				if (ThisStaffType == StaffType.Standard || ThisStaffType == StaffType.Solo)
@@ -293,9 +293,9 @@ namespace NWCTXT2Ly
 			{
 				if (ThisStaffType == StaffType.NoBracketNext)
 				{
-					if (StaffNames.Count > 1)
+					if (WhichStaff > 1)
 					{
-						ThisStaffType = StaffNames[StaffNames.Count - 2].Type;
+						ThisStaffType = StaffNames[WhichStaff - 1].Type;
 					}
 					else
 					{
@@ -533,8 +533,7 @@ namespace NWCTXT2Ly
 							NWCStaffFile = new StreamWriter(CurrentDir + txtName.Text + StaffName + ".nwcextract");
 							GetNoteInfo(CopyLine);
 							NWCStaffFile.Close();
-							string DynamicDir = GetDynDir();
-							StaffType ThisStaffType = StaffNames[StaffNames.Count - 1].Type;
+							string DynamicDir = GetDynDir(StaffNames.Count - 1);
 							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString() };
 							nwc2ly.nwc2ly.Main(args);
 							break;
@@ -631,7 +630,6 @@ namespace NWCTXT2Ly
 										ThisOssiaDetails.OssiaMusicName = OssiaMusic;
 										ThisOssiaDetails.OssiaPiece = OssiaPieces;
 										OssiaInfo.Add(ThisOssiaDetails);
-
 									}
 								}
 							}
@@ -1017,7 +1015,7 @@ namespace NWCTXT2Ly
 						WriteLyricDetails(StaffNames[i], ref LyricName);
 						LilyPondFile.WriteLine("      >> % Staff end");
 						DynamicAlign = "";
-						if (GetDynDir() == "Up")
+						if (GetDynDir(i) == "Up")
 						{
 							DynamicAlign = " \\with { alignAboveContext = \"" + ThisStave.Name + "\" } ";
 						}
@@ -1053,7 +1051,7 @@ namespace NWCTXT2Ly
 						{
 							if (!PianoStaff)
 							{
-								if (StaffNames[1].Abbrev != "")
+								if (StaffNames[i].Abbrev != "")
 								{
 									LilyPondFile.WriteLine("        \\set Staff.shortInstrumentName = " + MakeStaffName(StaffNames[i].Abbrev));
 								}
@@ -1075,7 +1073,7 @@ namespace NWCTXT2Ly
 						WriteLyricDetails(StaffNames[i], ref LyricName);
 						LilyPondFile.WriteLine("      >> % Staff end");
 						DynamicAlign = "";
-						if (GetDynDir() == "Up")
+						if (GetDynDir(i) == "Up")
 						{
 							DynamicAlign = " \\with { alignAboveContext = \"" + ThisStave.Name + "\" } ";
 						}
