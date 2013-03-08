@@ -155,6 +155,50 @@ namespace NWCTXT2Ly
 					break;
 			}
 		}
+		private void SetRegValue(Control ThisControl, string FileName)
+		{
+			RegistryKey AppKey = Application.UserAppDataRegistry;
+			RegistryKey SubKey;
+			if (FileName != "")
+			{
+				SubKey = AppKey.CreateSubKey(FileName);
+			}
+			else
+			{
+				SubKey = AppKey.CreateSubKey("Default");
+			}
+			string ControlName = ThisControl.Name;
+			switch (ThisControl.GetType().Name)
+			{
+				case "Label":
+				case "Button":
+					break;  // Do nothing
+				case "TextBox":
+					TextBox ThisBox = (TextBox)ThisControl;
+					if (!ThisBox.ReadOnly)
+					{
+						string ThisText = ThisBox.Text;
+						SubKey.SetValue(ThisBox.Name, ThisText);
+					}
+					break;
+				case "CheckBox":
+					CheckBox Check = (CheckBox)ThisControl;
+					bool ThisVal = Check.Checked;
+					SubKey.SetValue(Check.Name, ThisVal.ToString());
+					break;
+				case "NumericUpDown":
+					NumericUpDown UpDown = (NumericUpDown)ThisControl;
+					int Number = (int)UpDown.Value;
+					SubKey.SetValue(UpDown.Name, Number.ToString());
+					break;
+				case "RadioButton":
+					RadioButton Radio = (RadioButton)ThisControl;
+					bool Checked = Radio.Checked;
+					SubKey.SetValue(Radio.Name, Checked.ToString());
+					break;
+			}
+		}
+
 		private void FileChanged(object sender, EventArgs e)
 		{
 			GetRegData();
@@ -261,17 +305,34 @@ namespace NWCTXT2Ly
 				}
 			}
 		}
+		private void SaveRegData()
+		{
+			for (int i = 0; i < this.Controls.Count; i++)
+			{
+				if (this.Controls[i].GetType().Name == "GroupBox")
+				{
+					for (int j = 0; j < this.Controls[i].Controls.Count; j++)
+					{
+						SetRegValue(this.Controls[i].Controls[j], txtFile.Text);
+					}
+				}
+				else
+				{
+					SetRegValue(this.Controls[i], txtFile.Text);
+				}
+			}
+		}
 		private void btnBrowse_Click(object sender, EventArgs e)
 		{
 			OpenFileDialog ofnSource = new OpenFileDialog();
 			ofnSource.Filter = "Noteworthy Text files (*.nwctxt)|*.nwctxt";
 			if (ofnSource.ShowDialog() == DialogResult.OK)
 			{
+				SaveRegData();
 				txtFile.Text = ofnSource.FileName;
 				Application.UserAppDataRegistry.SetValue("Filename", txtFile.Text);
 				btnGo.Enabled = true;
 			}
-
 		}
 
 		private void btnGo_Click(object sender, EventArgs e)
@@ -534,7 +595,7 @@ namespace NWCTXT2Ly
 							GetNoteInfo(CopyLine);
 							NWCStaffFile.Close();
 							string DynamicDir = GetDynDir(StaffNames.Count - 1);
-							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString() };
+							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString(), chkAutobeam.Checked.ToString() };
 							nwc2ly.nwc2ly.Main(args);
 							break;
 						}
@@ -590,7 +651,7 @@ namespace NWCTXT2Ly
 					// Get the contents of the file which includes the ossia
 					string FileContents = InputFile.ReadToEnd();
 					InputFile.Close();
-					FileContents=FileContents.Replace("|.", ":|");
+					FileContents=FileContents.Replace("|.", ":|.");
 					StreamWriter FileOutput = new StreamWriter(CurrentDir + StaffNames[i].FileName + ".ly");
 					FileOutput.Write(FileContents);
 					FileOutput.Flush();
@@ -694,7 +755,10 @@ namespace NWCTXT2Ly
 							OssiaStaff = OssiaInfo[j].OssiaMusicName;
 						}
 						MusicDetails += "\\new Voice = \"" + OssiaInfo[j].OssiaMusicName + "Ossia\" { \r\n";
-						MusicDetails += "\\autoBeamOff\r\n";
+						if (!chkAutobeam.Checked)
+						{
+							MusicDetails += "\\autoBeamOff\r\n";
+						}
 						MusicDetails += "\\" + OssiaInfo[j].OssiaMusicName + "\r\n";
 						MusicDetails += " } \r\n";
 

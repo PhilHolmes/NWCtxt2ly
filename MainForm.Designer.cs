@@ -64,6 +64,7 @@
 			this.chkLast = new System.Windows.Forms.CheckBox();
 			this.chkMelody = new System.Windows.Forms.CheckBox();
 			this.chkShort = new System.Windows.Forms.CheckBox();
+			this.chkAutobeam = new System.Windows.Forms.CheckBox();
 			((System.ComponentModel.ISupportInitialize)(this.udFontSize)).BeginInit();
 			this.grpGrace.SuspendLayout();
 			this.grpPaper.SuspendLayout();
@@ -502,11 +503,23 @@
 			this.chkShort.UseVisualStyleBackColor = true;
 			this.chkShort.CheckedChanged += new System.EventHandler(this.ControlChanged);
 			// 
+			// chkAutobeam
+			// 
+			this.chkAutobeam.AutoSize = true;
+			this.chkAutobeam.Location = new System.Drawing.Point(81, 455);
+			this.chkAutobeam.Name = "chkAutobeam";
+			this.chkAutobeam.Size = new System.Drawing.Size(74, 17);
+			this.chkAutobeam.TabIndex = 29;
+			this.chkAutobeam.Text = "Autobeam";
+			this.chkAutobeam.UseVisualStyleBackColor = true;
+			this.chkAutobeam.CheckedChanged += new System.EventHandler(this.ControlChanged);
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(521, 461);
+			this.ClientSize = new System.Drawing.Size(521, 480);
+			this.Controls.Add(this.chkAutobeam);
 			this.Controls.Add(this.chkShort);
 			this.Controls.Add(this.chkMelody);
 			this.Controls.Add(this.chkLast);
@@ -589,6 +602,7 @@
 		private System.Windows.Forms.CheckBox chkLast;
 		private System.Windows.Forms.CheckBox chkMelody;
 		private System.Windows.Forms.CheckBox chkShort;
+		private System.Windows.Forms.CheckBox chkAutobeam;
 	}
 }
 
