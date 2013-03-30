@@ -368,6 +368,10 @@ namespace NWCTXT2Ly
 					DynamicDir = "Up";
 				}
 			}
+			if (StaffNames[WhichStaff].isInst)
+			{
+				DynamicDir = "Down";
+			}
 
 			return DynamicDir;
 		}
@@ -460,6 +464,10 @@ namespace NWCTXT2Ly
 							Staff.Abbrev = nwc2ly.nwc2ly.GetPar("LabelAbbr", Line);
 							Staff.Abbrev = Staff.Abbrev.Replace("\"", "");
 							Staff.FileName = txtName.Text + StaffName;
+							if (nwc2ly.nwc2ly.GetPar("Group", Line).IndexOf("Instrument") > -1)
+							{
+								Staff.isInst = true;
+							}
 							StaffNames.Add(Staff);
 							break;
 						}
@@ -1045,6 +1053,10 @@ namespace NWCTXT2Ly
 											{
 												LilyPondFile.WriteLine("      \\set PianoStaff.instrumentName = #\"Piano\"");
 											}
+											if (chkShort.Checked)
+											{
+												LilyPondFile.WriteLine("      \\set PianoStaff.shortInstrumentName = #\"Pno\"");
+											}
 											break;
 										}
 									default:
@@ -1065,8 +1077,11 @@ namespace NWCTXT2Ly
 					{
 						if (StaffNames[i].Type == StaffType.Solo || StaffNames[i].Type == StaffType.Standard)
 						{
-							MelodyEngraver = "\\with { \\consists \"Melody_engraver\" }";
-							NeutralDirection = "\\override Stem #'neutral-direction = #'()";
+							if (!StaffNames[i].isInst)
+							{
+								MelodyEngraver = "\\with { \\consists \"Melody_engraver\" }";
+								NeutralDirection = "\\override Stem #'neutral-direction = #'()";
+							}
 						}
 					}
 					if (Layer == "N" && Layering)  // New voice on existing stave - layering = false - need to end stave
@@ -1084,21 +1099,18 @@ namespace NWCTXT2Ly
 						{
 							DynamicAlign = " \\with { alignAboveContext = \"" + ThisStave.Name + "\" } ";
 						}
-						if (!PianoDynamicsWritten)
+						if (PianoStaff)
 						{
-							if (!PianoStaff)
+							if (!PianoDynamicsWritten)
 							{
 								LilyPondFile.WriteLine("      \\new Dynamics " + DynamicAlign + "{ \\include \"" + ThisStave.FileName + "Dyn.ly\" }");
+								PianoDynamicsWritten = true;
 							}
 						}
 						else
 						{
-							PianoDynamicsWritten = false;
-						}
-						if (PianoStaff)
-						{
 							LilyPondFile.WriteLine("      \\new Dynamics " + DynamicAlign + "{ \\include \"" + ThisStave.FileName + "Dyn.ly\" }");
-							PianoDynamicsWritten = true;
+							PianoDynamicsWritten = false;
 						}
 						Layering = false;
 						Staves++;
@@ -1157,8 +1169,19 @@ namespace NWCTXT2Ly
 						{
 							DynamicAlign = " \\with { alignAboveContext = \"" + ThisStave.Name + "\" } ";
 						}
-						LilyPondFile.WriteLine("      \\new Dynamics " + DynamicAlign + "{ \\include \"" + ThisStave.FileName + "Dyn.ly\" }");
-
+						if (PianoStaff)
+						{
+							if (!PianoDynamicsWritten)
+							{
+								LilyPondFile.WriteLine("      \\new Dynamics " + DynamicAlign + "{ \\include \"" + ThisStave.FileName + "Dyn.ly\" }");
+								PianoDynamicsWritten = true;
+							}
+						}
+						else
+						{
+							LilyPondFile.WriteLine("      \\new Dynamics " + DynamicAlign + "{ \\include \"" + ThisStave.FileName + "Dyn.ly\" }");
+							PianoDynamicsWritten = false;
+						}
 						Layering = false;
 						Staves++;
 					}
@@ -1365,13 +1388,14 @@ namespace NWCTXT2Ly
 					FindWordWithQuotesMatch = FindStartingQuote.Match(Input);
 				}
 
-				Regex FindEndingQuote = new Regex("(\\s)([\\w,\\.;:\\)\\!\\'\\?]+)(\\\\\\\"[\\s_]*)");
+				Regex FindEndingQuote = new Regex("(\\s)([\\w,\\.;:\\)\\!\\'\\?]+)(\\\\\\\")([\\.,!;:])([\\s_]*)");
 				FindWordWithQuotesMatch = FindEndingQuote.Match(Input);
 				while (FindWordWithQuotesMatch.Success)
 				{
+					string Punct = FindWordWithQuotesMatch.Result("$4");
 					string End = FindWordWithQuotesMatch.Result("$3");
 					string Word = FindWordWithQuotesMatch.Result("$2");
-					Input = Input.Replace(Word + End, "\"" + Word + "\\\"\" ");
+					Input = Input.Replace(Word + End + Punct, "\"" + Word + "\\\"" + Punct + "\"");
 					FindWordWithQuotesMatch = FindEndingQuote.Match(Input);
 				}
 
@@ -1633,6 +1657,7 @@ namespace NWCTXT2Ly
 		public bool OssiaInclude = false;
 		public List<string> OssiaMusic = new List<string>();
 		public bool MasterRepeatClose = false;
+		public bool isInst = false;
 	}
 	public class OssiaMusicInfo
 	{
