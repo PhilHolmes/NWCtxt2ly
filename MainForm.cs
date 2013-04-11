@@ -1388,7 +1388,7 @@ namespace NWCTXT2Ly
 					FindWordWithQuotesMatch = FindStartingQuote.Match(Input);
 				}
 
-				Regex FindEndingQuote = new Regex("(\\s)([\\w,\\.;:\\)\\!\\'\\?]+)(\\\\\\\")([\\.,!;:])([\\s_]*)");
+				Regex FindEndingQuote = new Regex("(\\s)([\\w,\\.;:\\)\\!\\'\\?]+)(\\\\\\\")([\\.,\\!;:])([\\s_]*)");
 				FindWordWithQuotesMatch = FindEndingQuote.Match(Input);
 				while (FindWordWithQuotesMatch.Success)
 				{
@@ -1399,13 +1399,13 @@ namespace NWCTXT2Ly
 					FindWordWithQuotesMatch = FindEndingQuote.Match(Input);
 				}
 
-				Regex FindQuoteInWord = new Regex(@"(\s)([\w\.~,:\?]*"+ "\\\\\\\"" + @"[\w\.~,:\?]*)(\s)");
+				Regex FindQuoteInWord = new Regex(@"(\s)([\w\.~,:\?\!]*"+ "\\\\\\\"" + @"[\w\.~,:\?\!]*)(\s)");
 				FindWordWithQuotesMatch = FindQuoteInWord.Match(Input);
 				while (FindWordWithQuotesMatch.Success)
 				{
 					string Word = FindWordWithQuotesMatch.Result("$2");
 					Input = Input.Replace(Word, "\"" + Word + "\"");
-					FindWordWithQuotesMatch = FindEndingQuote.Match(Input);
+					FindWordWithQuotesMatch = FindQuoteInWord.Match(Input);
 				}
 				Match FindNumbersMatch = FindNumbers.Match(Input);  // Lily interprets a number in lyrics as a duration, so need to put them in quotes
 				// ([^\s]*[0-9]+[^\s]*)
