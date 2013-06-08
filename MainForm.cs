@@ -603,7 +603,7 @@ namespace NWCTXT2Ly
 							GetNoteInfo(CopyLine);
 							NWCStaffFile.Close();
 							string DynamicDir = GetDynDir(StaffNames.Count - 1);
-							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString(), chkAutobeam.Checked.ToString() };
+							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString(), chkAutobeam.Checked.ToString(), udDynSpace.Value.ToString() };
 							nwc2ly.nwc2ly.Main(args);
 							break;
 						}
@@ -913,7 +913,7 @@ namespace NWCTXT2Ly
 					{
 						LyricAlign = "\\with { alignAboveContext = " + StaffName.StaffName + " } ";
 					}
-					LilyPondFile.WriteLine("        \\new Lyrics \\lyricsto \"" + StaffName.FileName + "\" { " + FontSize + " << \\include \"" + StaffName.LyricFileNames[i] + "\" >> }");
+					LilyPondFile.WriteLine("        \\new Lyrics " + LyricAlign + "\\lyricsto \"" + StaffName.FileName + "\" { " + FontSize + " << \\include \"" + StaffName.LyricFileNames[i] + "\" >> }");
 					LyricName++;
 				}
 			}

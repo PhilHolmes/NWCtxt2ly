@@ -65,6 +65,8 @@
 			this.chkMelody = new System.Windows.Forms.CheckBox();
 			this.chkShort = new System.Windows.Forms.CheckBox();
 			this.chkAutobeam = new System.Windows.Forms.CheckBox();
+			this.udDynSpace = new System.Windows.Forms.NumericUpDown();
+			this.label9 = new System.Windows.Forms.Label();
 			((System.ComponentModel.ISupportInitialize)(this.udFontSize)).BeginInit();
 			this.grpGrace.SuspendLayout();
 			this.grpPaper.SuspendLayout();
@@ -72,6 +74,7 @@
 			((System.ComponentModel.ISupportInitialize)(this.udLeftMargin)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.udBottomMargin)).BeginInit();
 			((System.ComponentModel.ISupportInitialize)(this.udTopMargin)).BeginInit();
+			((System.ComponentModel.ISupportInitialize)(this.udDynSpace)).BeginInit();
 			this.SuspendLayout();
 			// 
 			// btnBrowse
@@ -514,11 +517,45 @@
 			this.chkAutobeam.UseVisualStyleBackColor = true;
 			this.chkAutobeam.CheckedChanged += new System.EventHandler(this.ControlChanged);
 			// 
+			// udDynSpace
+			// 
+			this.udDynSpace.Location = new System.Drawing.Point(286, 294);
+			this.udDynSpace.Maximum = new decimal(new int[] {
+            8,
+            0,
+            0,
+            0});
+			this.udDynSpace.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+			this.udDynSpace.Name = "udDynSpace";
+			this.udDynSpace.Size = new System.Drawing.Size(37, 20);
+			this.udDynSpace.TabIndex = 30;
+			this.udDynSpace.Value = new decimal(new int[] {
+            8,
+            0,
+            0,
+            0});
+			this.udDynSpace.ValueChanged += new System.EventHandler(this.ControlChanged);
+			// 
+			// label9
+			// 
+			this.label9.AutoSize = true;
+			this.label9.Location = new System.Drawing.Point(329, 296);
+			this.label9.Name = "label9";
+			this.label9.Size = new System.Drawing.Size(93, 13);
+			this.label9.TabIndex = 31;
+			this.label9.Text = "Dynamics spacing";
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.ClientSize = new System.Drawing.Size(521, 480);
+			this.Controls.Add(this.label9);
+			this.Controls.Add(this.udDynSpace);
 			this.Controls.Add(this.chkAutobeam);
 			this.Controls.Add(this.chkShort);
 			this.Controls.Add(this.chkMelody);
@@ -560,6 +597,7 @@
 			((System.ComponentModel.ISupportInitialize)(this.udLeftMargin)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.udBottomMargin)).EndInit();
 			((System.ComponentModel.ISupportInitialize)(this.udTopMargin)).EndInit();
+			((System.ComponentModel.ISupportInitialize)(this.udDynSpace)).EndInit();
 			this.ResumeLayout(false);
 			this.PerformLayout();
 
@@ -603,6 +641,8 @@
 		private System.Windows.Forms.CheckBox chkMelody;
 		private System.Windows.Forms.CheckBox chkShort;
 		private System.Windows.Forms.CheckBox chkAutobeam;
+		private System.Windows.Forms.NumericUpDown udDynSpace;
+		private System.Windows.Forms.Label label9;
 	}
 }
 
