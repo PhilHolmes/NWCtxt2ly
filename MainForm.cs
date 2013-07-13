@@ -1047,7 +1047,7 @@ namespace NWCTXT2Ly
 									case StaffType.LowerGrandStaff:
 									case StaffType.GrandStaffNext:
 										{
-											LilyPondFile.WriteLine("    \\new PianoStaff <<");
+											LilyPondFile.WriteLine(@"    \new PianoStaff \with { \consists #Span_stem_engraver } <<");
 											LilyPondFile.WriteLine("      \\set PianoStaff.connectArpeggios = ##t");
 											if (chkLabel.Checked)
 											{
