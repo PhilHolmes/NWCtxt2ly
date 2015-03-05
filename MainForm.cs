@@ -81,13 +81,7 @@ using Microsoft.Win32;
 
 namespace NWCTXT2Ly
 {
-	// Use the staff properties to decide whether it's a chord staff or whatever - page 123 of notation reference
-	// Options: remove empty staves
-	//	font size
-	//	Multivoice rest position
-	
-	// Fix bug over multiple runs - done
-	
+
 	public partial class MainForm : Form
 	{
 		StreamReader NWCTextFile;
@@ -99,6 +93,7 @@ namespace NWCTXT2Ly
 		string FileNameArg;
 		bool SetSlurComplex = false;
 		double ThisVersion = 0;
+		List<LyricReplaceClass> LyricReplace = new List<LyricReplaceClass>();
 
 		public MainForm(string FileName)
 		{
@@ -287,6 +282,13 @@ namespace NWCTXT2Ly
 				ProcessFile();
 				Application.Exit();
 			}
+			LyricReplace.Add(new LyricReplaceClass("<left>", @" \once \override LyricText #'self-alignment-X = #LEFT ")); // Implements left-align
+			LyricReplace.Add(new LyricReplaceClass("<right>", @" \once \override LyricText #'self-alignment-X = #RIGHT ")); // Right
+			LyricReplace.Add(new LyricReplaceClass("<centre>", @" \once \override LyricText #'self-alignment-X = #CENTER ")); //Centre
+			LyricReplace.Add(new LyricReplaceClass("<i>", " \\override LyricText #'font-shape = #'italic ")); // Italic text
+			LyricReplace.Add(new LyricReplaceClass(@"</i>", " \\override LyricText #'font-shape = #'normal "));//  Revert
+			LyricReplace.Add(new LyricReplaceClass("<h>", " \\override LyricText #'stencil = ##f ")); //Implement <h> to hide text
+			LyricReplace.Add(new LyricReplaceClass(@"</h>", " \\revert LyricText #'stencil ")); // Revert
 		}
 		private void GetRegData()
 		{
@@ -603,7 +605,7 @@ namespace NWCTXT2Ly
 							GetNoteInfo(CopyLine);
 							NWCStaffFile.Close();
 							string DynamicDir = GetDynDir(StaffNames.Count - 1);
-							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString(), chkAutobeam.Checked.ToString(), udDynSpace.Value.ToString() };
+							string[] args = { CurrentDir + txtName.Text + StaffName + ".nwcextract", CurrentDir + txtName.Text + StaffName + ".ly", DynamicDir, radAcc.Checked.ToString(), PreviousStaffLayered.ToString(), chkAutobeam.Checked.ToString(), udDynSpace.Value.ToString(), chkSkipLyr.Checked.ToString() };
 							nwc2ly.nwc2ly.Main(args);
 							break;
 						}
@@ -677,9 +679,10 @@ namespace NWCTXT2Ly
 					{
 						// Looping over all the included ossia parts by name
 						string OssiaMusic = StaffNames[i].OssiaMusic[j];
-						if (OssiaMusic.IndexOf(" Staff ") > -1)
+						string [] OssiaMusicSplit;
+						// if (OssiaMusic.IndexOf(" Staff ") > -1)
 						{
-							OssiaMusic = OssiaMusic.Substring(0, OssiaMusic.Length - 7);
+							OssiaMusicSplit = OssiaMusic.Split(' '); ;
 							OssiaPieces++;
 						}
 						for (int k = 0; k < StaffNames.Count; k++)  // Look for the stave(s) that contain the actual ossia music
@@ -689,14 +692,14 @@ namespace NWCTXT2Ly
 								for (int l = 0; l < StaffNames[k].OssiaMusic.Count; l++)  // Loop over all the ossia names
 								{
 									string OssiaInclude = StaffNames[k].OssiaMusic[l];
-									if (OssiaMusic == OssiaInclude)
+									if (OssiaMusicSplit[0] == OssiaInclude)
 									{
 										// Found the staff with the included ossia music
 										OssiaMusicInfo ThisOssiaDetails = new OssiaMusicInfo();
 										ThisOssiaDetails.StaffName = StaffNames[k].Name;
 										ThisOssiaDetails.StaffNum = k;
 										ThisOssiaDetails.Layer = (StaffNames[k].Layer == "Y");
-										ThisOssiaDetails.OssiaMusicName = OssiaMusic;
+										ThisOssiaDetails.OssiaMusicName = OssiaMusicSplit[0];
 										ThisOssiaDetails.OssiaPiece = OssiaPieces;
 										OssiaInfo.Add(ThisOssiaDetails);
 									}
@@ -753,11 +756,19 @@ namespace NWCTXT2Ly
 						string MusicDetails = "";
 						if (OssiaInfo[j].TopOfLayer)
 						{
-							MusicDetails += "\\new Staff = \"" + OssiaInfo[j].OssiaMusicName + "OssiaStaff\" \\with {\r\n";
-							MusicDetails += "\\remove \"Time_signature_engraver\"\r\n";
-							MusicDetails += "alignAboveContext = #\"" + StaffNames[i].Name + "\"\r\n";
-							MusicDetails += "\\override StaffSymbol #'staff-space = #(magstep -3) % Sets the staff line spacing\r\n";
-							MusicDetails += "fontSize = #-2\r\n";
+							MusicDetails += " \\new Staff = \"" + OssiaInfo[j].OssiaMusicName + "OssiaStaff\" \\with {\r\n";
+							MusicDetails += "   \\remove \"Time_signature_engraver\"\r\n";
+							//MusicDetails += "   alignAboveContext = #\"" + StaffNames[i].Name + "Dyn\"\r\n";
+							if (chkSpacer.Checked)
+							{
+								MusicDetails += "   alignAboveContext = #\"" + StaffNames[i].OssiaMusic[j].Split(' ')[1] + "\"\r\n";
+							}
+							else
+							{
+								MusicDetails += "   alignAboveContext = #\"" + StaffNames[i].OssiaMusic[j].Split(' ')[1] + "Dyn\"\r\n";
+							}
+							MusicDetails += "   \\override StaffSymbol #'staff-space = #(magstep -3) % Sets the staff line spacing\r\n";
+							MusicDetails += "   fontSize = #-2\r\n";
 							MusicDetails += " } \r\n";
 							MusicDetails += " << \r\n";
 							OssiaStaff = OssiaInfo[j].OssiaMusicName;
@@ -765,9 +776,9 @@ namespace NWCTXT2Ly
 						MusicDetails += "\\new Voice = \"" + OssiaInfo[j].OssiaMusicName + "Ossia\" { \r\n";
 						if (!chkAutobeam.Checked)
 						{
-							MusicDetails += "\\autoBeamOff\r\n";
+							MusicDetails += "   \\autoBeamOff\r\n";
 						}
-						MusicDetails += "\\" + OssiaInfo[j].OssiaMusicName + "\r\n";
+						MusicDetails += "   \\" + OssiaInfo[j].OssiaMusicName + "\r\n";
 						MusicDetails += " } \r\n";
 
 						if (OssiaInfo[j].BottomOfLayer)
@@ -783,9 +794,10 @@ namespace NWCTXT2Ly
 						// Loop over all the lyric lines in this included music, in reverse order (lily requires this)
 						for (int m = StaffNames[OssiaInfo[j].StaffNum].LyricLines - 1; m >= 0; m--)
 						{
-							LyricString += "\\new Lyrics \\with { alignBelowContext = \"";
+							LyricString += "\\new Lyrics \\with { \r\n  alignBelowContext = \"";
 							LyricString += OssiaStaff + "OssiaStaff";
-							LyricString += "\" } \\lyricsto \"" + OssiaInfo[j].OssiaMusicName + "Ossia\" { \\teeny ";
+							LyricString += "\"\r\n  \\override VerticalAxisGroup.nonstaff-nonstaff-spacing = #'((basic-distance . 2))\r\n}";
+							LyricString += "\\lyricsto \"" + OssiaInfo[j].OssiaMusicName + "Ossia\" { \\teeny ";
 							StreamReader OssiaLyricsFile = new StreamReader(CurrentDir + StaffNames[OssiaInfo[j].StaffNum].LyricFileNames[m]);
 							string OssiaLyrics = OssiaLyricsFile.ReadToEnd();
 							OssiaLyricsFile.Close();
@@ -797,7 +809,7 @@ namespace NWCTXT2Ly
 								ThisLyric = LyricMatch.Result("$2" + "$4");
 							}
 							LyricString += ThisLyric;
-							LyricString += " }";
+							LyricString += " }\r\n";
 						}
 						// Replace the marker with the lyric string
 						FileContents = FileContents.Replace("%" + OssiaInfo[j].OssiaMusicName + "Lyrics", LyricString);
@@ -812,6 +824,14 @@ namespace NWCTXT2Ly
 				}
 			}
 			// End of ossia code
+
+			if (chkSkipLyr.Checked)
+			{
+				for (int i = 0; i < StaffNames.Count; i++)
+				{
+					DoLyricSkips(StaffNames[i]);
+				}
+			}
 
 			LilyPondFile = new StreamWriter(LilyPondFileName, false);
 			string ver = Application.ProductVersion;
@@ -851,6 +871,14 @@ namespace NWCTXT2Ly
 				}
 			}
 
+			if (chkPiano.Checked)
+			{
+				LilyPondFile.WriteLine("\\layout {");
+				LilyPondFile.WriteLine("  \\context {");
+				LilyPondFile.WriteLine("    \\PianoStaff \\remove \"Keep_alive_together_engraver\" ");
+				LilyPondFile.WriteLine("  }");
+				LilyPondFile.WriteLine("}");
+			}
 			if (chkRemove.Checked)
 			{
 				LilyPondFile.WriteLine("\\layout {");
@@ -1003,7 +1031,7 @@ namespace NWCTXT2Ly
 					{
 						InGrandStaff = false;
 					}
-					if (StaveTypeAbove != NewStaveType) // i.e. we have to change the type of bracket we're using
+					if (StaveTypeAbove != NewStaveType  || StaveTypeAbove == StaffType.None) // i.e. we have to change the type of bracket we're using
 					{
 						if (StaveTypeAbove != StaffType.BracketNext & NewStaveType != StaffType.NoBracketNext)
 						{
@@ -1097,7 +1125,7 @@ namespace NWCTXT2Ly
 						DynamicAlign = "";
 						if (GetDynDir(i) == "Up")
 						{
-							DynamicAlign = " \\with { alignAboveContext = \"" + ThisStave.Name + "\" } ";
+							DynamicAlign = " = \"" + ThisStave.Name + "Dyn\" \\with { alignAboveContext = \"" + ThisStave.Name + "\" } ";
 						}
 						if (PianoStaff)
 						{
@@ -1153,14 +1181,6 @@ namespace NWCTXT2Ly
 								}
 							}
 						}
-
-						if (PianoStaff)
-						{
-							if (!chkPiano.Checked)
-							{
-								LilyPondFile.WriteLine("        \\override Staff.VerticalAxisGroup #'remove-empty = ##f"); // Ensures piano parts don't lose their empty staves
-							}
-						}
 						LilyPondFile.WriteLine("        \\new Voice = \"" + StaffNames[i].FileName + "\" " + MelodyEngraver + " { " + FontSize + NeutralDirection + " << \\include \"" + StaffNames[i].FileName + ".ly\" >> }");
 						WriteLyricDetails(StaffNames[i], ref LyricName);
 						LilyPondFile.WriteLine("      >> % Staff end");
@@ -1207,7 +1227,7 @@ namespace NWCTXT2Ly
 						{
 							if (!PianoStaff)
 							{
-								if (StaffNames[1].Abbrev != "")
+								if (StaffNames[i].Abbrev != "")
 								{
 									LilyPondFile.WriteLine("        \\set Staff.shortInstrumentName = " + MakeStaffName(StaffNames[i].Abbrev));
 								}
@@ -1215,13 +1235,6 @@ namespace NWCTXT2Ly
 								{
 									LilyPondFile.WriteLine("        \\set Staff.shortInstrumentName = " + MakeStaffName(StaffNames[i].StaffName));
 								}
-							}
-						}
-						if (PianoStaff)
-						{
-							if (!chkPiano.Checked)
-							{
-								LilyPondFile.WriteLine("        \\override Staff.VerticalAxisGroup #'remove-empty = ##f"); // Ensures piano parts don't lose their empty staves
 							}
 						}
 						LilyPondFile.WriteLine("        \\new Voice = \"" + StaffNames[i].FileName + "\" " + MelodyEngraver + " { " + FontSize + ThisVoiceName + NeutralDirection + " << \\include \"" + StaffNames[i].FileName + ".ly\" >> }");
@@ -1240,7 +1253,7 @@ namespace NWCTXT2Ly
 					StavesWritten++;
 				}
 			}
-			LilyPondFile.WriteLine("    >>  % Pianostaff end");
+			LilyPondFile.WriteLine("    >>  % Pianostaff/staffgroup/choirstaff end");
 			txtResult.Text = Staves.ToString() + " staves written with " + StaffNames.Count.ToString() + " voices.";
 		}
 		private string MakeStaffName(string Input)
@@ -1299,6 +1312,7 @@ namespace NWCTXT2Ly
 			Regex FirstHyphen = new Regex(@"({\s*--\s*)([A-Za-z,\.;:\)\!]*)");
 			Regex FindMarkup = new Regex(@"(<m)([1-9])(>)([^\s^-]*)");
 			Regex FindVerse = new Regex(@"<verse\(([\w]+)\)>");
+			Regex FindMinHyp = new Regex(@"<minhyp\(([\w]+)\)>");
 			Regex FindSuspendOutput = new Regex(@"<sus>.*?</sus>", RegexOptions.Singleline);
 
 			int LyricCount = 0;
@@ -1354,15 +1368,10 @@ namespace NWCTXT2Ly
 				Input = FindDoubleUnderscore.Replace(Input, "$1 __");  // Replace text-double underscore with text-space double underscore for extenders
 				Input = Input.Replace("\"\"", "\""); // Gets rid of double quotation marks.  Not really sure why...
 
-				Input = Input.Replace("<left>", @" \once \override LyricText #'self-alignment-X = #LEFT "); // Implements left-align
-				Input = Input.Replace("<right>", @" \once \override LyricText #'self-alignment-X = #RIGHT "); // Right
-				Input = Input.Replace("<centre>", @" \once \override LyricText #'self-alignment-X = #CENTER "); //Centre
-				Input = Input.Replace("<i>", " \\override LyricText #'font-shape = #'italic "); // Italic text
-				Input = Input.Replace(@"<\\i>", " \\override LyricText #'font-shape = #'normal "); // Revert italic
-				Input = Input.Replace(@"</i>", " \\override LyricText #'font-shape = #'normal ");  //Grr.  Must remember slash, not backslash
-
-				Input = Input.Replace("<h>", " \\override LyricText #'stencil = ##f "); //Implement <h> to hide text
-				Input = Input.Replace(@"</h>", " \\revert LyricText #'stencil "); // Revert
+				for (int ii = 0; ii < LyricReplace.Count; ii++)
+				{
+					Input = Input.Replace(LyricReplace[ii].ToReplace, LyricReplace[ii].Replacement);
+				}
 
 				string FindWordRegex = "(\\s\\\\\\\")";  // Yes - you really do need all those backslashes.
 				// We're looking for a word starting \" and so to tell the regtest parser to look for that, it needs \\ \"
@@ -1399,7 +1408,7 @@ namespace NWCTXT2Ly
 					FindWordWithQuotesMatch = FindEndingQuote.Match(Input);
 				}
 
-				Regex FindQuoteInWord = new Regex(@"(\s)([\w\.~,:\?\!]*"+ "\\\\\\\"" + @"[\w\.~,:\?\!]*)(\s)");
+				Regex FindQuoteInWord = new Regex(@"(\s)([\w\.~,:\?\!]*" + "\\\\\\\"" + @"[\w\.~,:\?\!]*)((</oss>)?\s)((</oss>)?\s)");
 				FindWordWithQuotesMatch = FindQuoteInWord.Match(Input);
 				while (FindWordWithQuotesMatch.Success)
 				{
@@ -1417,11 +1426,14 @@ namespace NWCTXT2Ly
 					string ThisNum = FindNumbersMatch.Result("$&");
 					if (!ThisNum.StartsWith("<verse("))  // Special case for verse numbers, so exclude them
 					{
-						int Location = FindNumbersMatch.Index;
-						int MatchLen = FindNumbersMatch.Length;
-						InputNumbersEsc += Input.Substring(OldLoc, Location - OldLoc) + "\"" + Input.Substring(Location, MatchLen) + "\"";
-						OldLoc = Location + MatchLen;
-						//Input = Input.Replace(ThisNum, "\"" + ThisNum + "\"");  // Puts numerals other than verse numbers in inverted commas
+						if (ThisNum.IndexOf("<minhyp(") < 0) // Ditto special case for minimum length hyphens
+						{
+							int Location = FindNumbersMatch.Index;
+							int MatchLen = FindNumbersMatch.Length;
+							InputNumbersEsc += Input.Substring(OldLoc, Location - OldLoc) + "\"" + Input.Substring(Location, MatchLen) + "\"";
+							OldLoc = Location + MatchLen;
+							//Input = Input.Replace(ThisNum, "\"" + ThisNum + "\"");  // Puts numerals other than verse numbers in inverted commas
+						}
 					}
 					FindNumbersMatch = FindNumbersMatch.NextMatch();
 					NumbersFound = true;
@@ -1432,8 +1444,8 @@ namespace NWCTXT2Ly
 					Input = InputNumbersEsc;
 				}
 
-				Input = Input.Replace(" _ ", @" \skip 1 "); // Replaces space-single underscore-space with skip to avoid left align problems
-				Input = Input.Replace(" _ ", @" \skip 1 "); // Need to do it twice because they overlap
+				Input = Input.Replace(" _ ", @" \skip1 "); // Replaces space-single underscore-space with skip
+				Input = Input.Replace(" _ ", @" \skip1 "); // Need to do it twice because they overlap
 
 				int VersePos = Input.IndexOf("<verse>");  // Converts <verse> to an incrementing stanza number
 				while (VersePos > -1)
@@ -1463,6 +1475,18 @@ namespace NWCTXT2Ly
 						}
 					}
 					VersePosMatch = FindVerse.Match(Input);
+				}
+
+				Match MinHypPosMatch = FindMinHyp.Match(Input);
+				// Minimum hyphen length
+				while (MinHypPosMatch.Success)
+				{
+					string MinHypLen = MinHypPosMatch.Result("$1");
+					if (MinHypLen != "")
+					{
+						Input = Input.Replace("<minhyp(" + MinHypLen + ")>", " \\once \\override LyricHyphen.minimum-distance = #" + MinHypLen + " \r\n");
+					}
+					MinHypPosMatch = FindMinHyp.Match(Input);
 				}
 
 				Input = FindParen.Replace(Input, "$1\"$2\"$3");  // Replaces (text with "(text" - must be after verse stuff
@@ -1574,6 +1598,104 @@ namespace NWCTXT2Ly
 			}
 			StaffNames[StaffNames.Count - 1].LyricLines = LyricCount;
 		}
+
+		private void DoLyricSkips(StaffInfo ThisStaffName)
+		{
+			string NoteFile = ThisStaffName.FileName + ".notes.txt";
+			StreamReader NoteData = new StreamReader(CurrentDir + NoteFile);
+			string AllNoteData = NoteData.ReadToEnd();
+			NoteData.Close();
+			string[] AllNotes = AllNoteData.Split(',');
+
+			foreach (string LyricFile in ThisStaffName.LyricFileNames)
+			{
+				StreamReader LyricFileStream = new StreamReader(CurrentDir + LyricFile);
+				string Input = LyricFileStream.ReadToEnd();
+				LyricFileStream.Close();
+
+				string AllLyrics = Input;
+
+				Regex FindStanza = new Regex("\\\\set stanza = #\"([0-9]*)\" \\r\\n");
+				MatchCollection StanzaMatches = FindStanza.Matches(AllLyrics);
+				foreach (Match StanzaMatch in StanzaMatches)
+				{
+					AllLyrics = AllLyrics.Replace(StanzaMatch.ToString(), StanzaMatch.ToString().Replace(" ", ""));
+				}
+
+				Regex FindConcat = new Regex("\\\\char\\s*##x[0-9]{4}\\s*[\\w]*");
+				MatchCollection ConcatMatches = FindConcat.Matches(AllLyrics);
+				foreach (Match ConcatMatch in ConcatMatches)
+				{
+					AllLyrics = AllLyrics.Replace(ConcatMatch.ToString(), ConcatMatch.ToString().Replace(" ", ""));
+				}
+
+				AllLyrics = AllLyrics.Replace(" --", "--");
+				AllLyrics = AllLyrics.Replace(" __", "__");
+				AllLyrics = AllLyrics.Replace("char ##", "char##");
+				while (AllLyrics.IndexOf("{ ") > -1) AllLyrics = AllLyrics.Replace("{ ", "{");
+				while (AllLyrics.IndexOf(" }") > -1) AllLyrics = AllLyrics.Replace(" }", "}");
+				AllLyrics = AllLyrics.Replace("\r\n}", "}");
+				while (AllLyrics.IndexOf(" }") > -1) AllLyrics = AllLyrics.Replace(" }", "}");
+				for (int ii = 0; ii < LyricReplace.Count; ii++)
+				{
+					AllLyrics = AllLyrics.Replace(LyricReplace[ii].Replacement, LyricReplace[ii].Replacement.Replace(" ", ""));
+				}
+				while (AllLyrics.IndexOf("  ") > -1) AllLyrics = AllLyrics.Replace("  ", " ");
+				while (AllLyrics.IndexOf("\r\n ") > -1) AllLyrics = AllLyrics.Replace("\r\n ", "\r\n");
+				string[] LyricTokens = AllLyrics.Split(' ');
+
+				int NoteLoc = 0;
+				string NewLyrics = "";
+				for (int i = 1; i < LyricTokens.Count(); i++)
+				{
+					if (AllNotes[NoteLoc].IndexOf("Skip") > -1 || LyricTokens[i] == @"\skip1")
+					{
+						if (!(LyricTokens[i - 1].IndexOf("--") > -1 || LyricTokens[i - 1].IndexOf("__") > -1 || LyricTokens[i - 1].IndexOf("\\skip1") > -1))
+						{
+							LyricTokens[i - 1] += "__";
+						}
+					}
+					while (NoteLoc < AllNotes.Count() && (AllNotes[NoteLoc] == "TieSkip" || AllNotes[NoteLoc] == "SlurSkip" || AllNotes[NoteLoc] == "SkipSkip"))
+					{
+						if (AllNotes[NoteLoc] == "SkipSkip")
+						{
+							LyricTokens[i - 1] += @" \skip1";
+						}
+						NoteLoc++;
+					}
+					NoteLoc++;
+				}
+				for (int i = 0; i < LyricTokens.Count(); i++)
+				{
+					NewLyrics += LyricTokens[i] + " ";
+				}
+				NewLyrics = NewLyrics.Replace("--", " --");
+				NewLyrics = NewLyrics.Replace("__", " __");
+				NewLyrics = NewLyrics.Replace("}", " }");
+				NewLyrics = NewLyrics.Replace("char##", "char ##");
+
+				int charPos = NewLyrics.IndexOf("char ##");
+				while (charPos > -1)
+				{
+					NewLyrics = NewLyrics.Insert(charPos + 12, " ");
+					charPos = NewLyrics.IndexOf("char ##", charPos + 1);
+				}
+
+				for (int ii = 0; ii < LyricReplace.Count; ii++)
+				{
+					NewLyrics = NewLyrics.Replace(LyricReplace[ii].Replacement.Replace(" ", ""), LyricReplace[ii].Replacement);
+				}
+				NewLyrics = NewLyrics.Replace(@"\setstanza=#", @"\set stanza = #");
+				NewLyrics = NewLyrics.Replace("  ", " ");
+				NewLyrics = NewLyrics.Replace("  ", " ");
+
+				StreamWriter LyricFileResult = new StreamWriter(CurrentDir + LyricFile, false);
+				LyricFileResult.Write(NewLyrics);
+				LyricFileResult.Flush();
+				LyricFileResult.Close();
+			}
+		}
+
 		private string DoHeaders(string SongInfo)
 		{
 			StringBuilder Header = new StringBuilder();
@@ -1639,6 +1761,11 @@ namespace NWCTXT2Ly
 				txtName.SelectionStart = Selection - 1;
 			}
 		}
+
+		private void lblFile_Click(object sender, EventArgs e)
+		{
+
+		}
 	}
 	public class StaffInfo
 	{
@@ -1684,4 +1811,15 @@ namespace NWCTXT2Ly
 		OrchestralNext,
 		BracketNext
 	}
+	public class LyricReplaceClass
+	{
+		public LyricReplaceClass(string First, string Second)
+		{
+			ToReplace = First;
+			Replacement = Second;
+		}
+		public string ToReplace;
+		public string Replacement;
+	}
+
 }

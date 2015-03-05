@@ -67,6 +67,8 @@
 			this.chkAutobeam = new System.Windows.Forms.CheckBox();
 			this.udDynSpace = new System.Windows.Forms.NumericUpDown();
 			this.label9 = new System.Windows.Forms.Label();
+			this.chkSkipLyr = new System.Windows.Forms.CheckBox();
+			this.chkSpacer = new System.Windows.Forms.CheckBox();
 			((System.ComponentModel.ISupportInitialize)(this.udFontSize)).BeginInit();
 			this.grpGrace.SuspendLayout();
 			this.grpPaper.SuspendLayout();
@@ -104,6 +106,7 @@
 			this.lblFile.Size = new System.Drawing.Size(47, 13);
 			this.lblFile.TabIndex = 3;
 			this.lblFile.Text = "Input file";
+			this.lblFile.Click += new System.EventHandler(this.lblFile_Click);
 			// 
 			// btnGo
 			// 
@@ -549,11 +552,35 @@
 			this.label9.TabIndex = 31;
 			this.label9.Text = "Dynamics spacing";
 			// 
+			// chkSkipLyr
+			// 
+			this.chkSkipLyr.AutoSize = true;
+			this.chkSkipLyr.Location = new System.Drawing.Point(81, 478);
+			this.chkSkipLyr.Name = "chkSkipLyr";
+			this.chkSkipLyr.Size = new System.Drawing.Size(201, 17);
+			this.chkSkipLyr.TabIndex = 32;
+			this.chkSkipLyr.Text = "Lyrics skip notes with \"Lyrics: Never\"";
+			this.chkSkipLyr.UseVisualStyleBackColor = true;
+			this.chkSkipLyr.CheckedChanged += new System.EventHandler(this.ControlChanged);
+			// 
+			// chkSpacer
+			// 
+			this.chkSpacer.AutoSize = true;
+			this.chkSpacer.Location = new System.Drawing.Point(81, 501);
+			this.chkSpacer.Name = "chkSpacer";
+			this.chkSpacer.Size = new System.Drawing.Size(233, 17);
+			this.chkSpacer.TabIndex = 33;
+			this.chkSpacer.Text = "Ossia is placed above spacer, not dynamics";
+			this.chkSpacer.UseVisualStyleBackColor = true;
+			this.chkSpacer.CheckedChanged += new System.EventHandler(this.ControlChanged);
+			// 
 			// MainForm
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.ClientSize = new System.Drawing.Size(521, 480);
+			this.ClientSize = new System.Drawing.Size(521, 532);
+			this.Controls.Add(this.chkSpacer);
+			this.Controls.Add(this.chkSkipLyr);
 			this.Controls.Add(this.label9);
 			this.Controls.Add(this.udDynSpace);
 			this.Controls.Add(this.chkAutobeam);
@@ -643,6 +670,8 @@
 		private System.Windows.Forms.CheckBox chkAutobeam;
 		private System.Windows.Forms.NumericUpDown udDynSpace;
 		private System.Windows.Forms.Label label9;
+		private System.Windows.Forms.CheckBox chkSkipLyr;
+		private System.Windows.Forms.CheckBox chkSpacer;
 	}
 }
 
