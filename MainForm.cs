@@ -1706,7 +1706,7 @@ namespace NWCTXT2Ly
 								  {"Author:", "composer = \\markup { \\center-column { \"Music: ", "\" \\vspace #1 } }"},
 								  {"Lyricist:", "poet = \\markup { \\center-column { \"Lyrics: ", "\" \\vspace #1 } }"},
 								  {"Copyright1:", "copyright = \\markup { \\vspace #2 \"", "\" } "},
-								  {"Comments:", @"title = \markup \fill-line { \line {} \line { ", "} }"}};
+								  {"Comments:", "title = \\markup { \\center-column { \\fill-line { \\line {} \\line { \"", "\" } } \\vspace #1 } }"}};
 
 
 			Header.AppendLine("\\header {");
