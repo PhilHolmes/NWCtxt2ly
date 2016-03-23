@@ -1444,7 +1444,7 @@ namespace NWCTXT2Ly
 					Input = InputNumbersEsc;
 				}
 
-				while (Input.IndexOf(" _ ") > -1) Input.Replace(" _ ", @" \skip1 "); // Replaces space-single underscore-space with skip
+				while (Input.IndexOf(" _ ") > -1) Input = Input.Replace(" _ ", @" \skip1 "); // Replaces space-single underscore-space with skip
 
 				int VersePos = Input.IndexOf("<verse>");  // Converts <verse> to an incrementing stanza number
 				while (VersePos > -1)
