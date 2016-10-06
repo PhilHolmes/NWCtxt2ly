@@ -426,6 +426,21 @@ namespace NWCTXT2Ly
 					case "Version":
 						{
 							ThisVersion = Convert.ToDouble(Line);
+							if (ThisVersion > 2.7)
+							{
+								// Get rid of backslashes escaped with following closing bracket
+								for (int ThisLine = 0; ThisLine < InputLines.Count; ThisLine++)
+								{
+									if (InputLines[ThisLine].IndexOf("|Text|Text:") == 0)
+									{
+										int EscPos = InputLines[ThisLine].IndexOf("\\]");
+										if (EscPos > -1)
+										{
+											InputLines[ThisLine] = InputLines[ThisLine].Substring(0, EscPos + 1) + InputLines[ThisLine].Substring(EscPos + 2);
+										}
+									}
+								}
+							}
 							break;
 						}
 					case "SongInfo":
