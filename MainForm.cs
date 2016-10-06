@@ -434,9 +434,10 @@ namespace NWCTXT2Ly
 									if (InputLines[ThisLine].IndexOf("|Text|Text:") == 0)
 									{
 										int EscPos = InputLines[ThisLine].IndexOf("\\]");
-										if (EscPos > -1)
+										while (EscPos > -1)
 										{
 											InputLines[ThisLine] = InputLines[ThisLine].Substring(0, EscPos + 1) + InputLines[ThisLine].Substring(EscPos + 2);
+											EscPos = InputLines[ThisLine].IndexOf("\\]");
 										}
 									}
 								}
