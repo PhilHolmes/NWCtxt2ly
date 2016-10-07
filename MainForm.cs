@@ -413,7 +413,7 @@ namespace NWCTXT2Ly
 				InputLines.Add(Line);
 				if (Line.IndexOf("setSlurComplex") > -1)
 				{
-					SetSlurComplex=true;
+					SetSlurComplex = true;
 				}
 			}
 			while (InputLines.Count > 0)
@@ -982,6 +982,7 @@ namespace NWCTXT2Ly
 			StaffInfo ThisStave = new StaffInfo();
 			string DynamicAlign;
 			bool PianoDynamicsWritten = false;
+			string WithMark = "";
 
 			for (int i = 0; i < StaffNames.Count; i++)
 			{
@@ -1029,7 +1030,12 @@ namespace NWCTXT2Ly
 				if (StaffNames[i].Visible && StaffNames[i].Type != StaffType.Ossia)
 				{
 					NewStaveType = StaffNames[i].Type;
-					
+
+					WithMark = "";
+					if (StaffNames[i].addMark)
+					{
+						WithMark = " \\with { \\consists Mark_engraver } ";
+					}
 					FontSize = "";
 					FurnitureSize = "";
 					if (NewStaveType == StaffType.Solo && chkSmall.Checked == true)
@@ -1172,7 +1178,7 @@ namespace NWCTXT2Ly
 					else if (Layer == "N" && !Layering) // Only voice on new stave - layering = false
 					{
 						VoiceNumber = 0;
-						LilyPondFile.WriteLine("      \\new Staff = \"" + StaffNames[i].Name + "\"" + FurnitureSize);
+						LilyPondFile.WriteLine("      \\new Staff = \"" + StaffNames[i].Name + "\"" + WithMark + FurnitureSize);
 						LilyPondFile.WriteLine("      <<");
 						ThisStave = StaffNames[i];
 
@@ -1228,7 +1234,7 @@ namespace NWCTXT2Ly
 						{
 							ThisVoiceName = VoiceNames[VoiceNumber];
 						}
-						LilyPondFile.WriteLine("      \\new Staff = \"" + StaffNames[i].Name + "\"" + FurnitureSize);
+						LilyPondFile.WriteLine("      \\new Staff = \"" + StaffNames[i].Name + "\"" + WithMark + FurnitureSize);
 						LilyPondFile.WriteLine("      <<");
 						ThisStave = StaffNames[i];
 
@@ -1307,6 +1313,13 @@ namespace NWCTXT2Ly
 				Input = InputCopy = InputLines[0];
 				InputLines.RemoveAt(0);
 				Command = nwc2ly.nwc2ly.GetCommand(ref InputCopy);
+				if (Command == "Text")
+				{
+					if (Input.IndexOf("addMarks") > -1)
+					{
+						StaffNames[StaffNames.Count - 1].addMark = true;
+					}
+				}
 			}
 			InputLines.Insert(0, Input);
 			NWCStaffFile.Close();
@@ -1803,6 +1816,7 @@ namespace NWCTXT2Ly
 		public List<string> OssiaMusic = new List<string>();
 		public bool MasterRepeatClose = false;
 		public bool isInst = false;
+		public bool addMark = false;
 	}
 	public class OssiaMusicInfo
 	{
