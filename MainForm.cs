@@ -386,7 +386,7 @@ namespace NWCTXT2Ly
 			SetSlurComplex = false;
 			try
 			{
-				Encoding isoIn = Encoding.GetEncoding(28591);
+				Encoding isoIn = Encoding.GetEncoding("UTF-8");
 				NWCTextFile = new StreamReader(txtFile.Text.ToString(), isoIn);
 			}
 			catch (Exception)
