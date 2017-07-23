@@ -431,6 +431,14 @@ namespace NWCTXT2Ly
 								// Get rid of backslashes escaped with following closing bracket
 								for (int ThisLine = 0; ThisLine < InputLines.Count; ThisLine++)
 								{
+									if (InputLines[ThisLine].IndexOf("|AddStaff|Name:") == 0)
+									{
+										int EscPos = InputLines[ThisLine].IndexOf(@"\]n");
+										if (EscPos > -1)
+										{
+											InputLines[ThisLine] = InputLines[ThisLine].Replace(@"\]n", @"\\n");
+										}
+									}
 									if (InputLines[ThisLine].IndexOf("|Text|Text:") == 0)
 									{
 										int EscPos = InputLines[ThisLine].IndexOf("\\]");
@@ -878,12 +886,18 @@ namespace NWCTXT2Ly
 			LilyPondFile.WriteLine("}");
 			LilyPondFile.WriteLine("");
 
+			string RemoveMark = "";
+
 			for (int i = 0; i < StaffNames.Count; i++)
 			{
 				if (StaffNames[i].Type == StaffType.Ossia)
 				{
 					LilyPondFile.WriteLine("\\include \"" + StaffNames[i].FileName + ".ly\"");
 
+				}
+				if (StaffNames[i].addMark)
+				{
+					RemoveMark = "  \\remove Mark_engraver\r\n";
 				}
 			}
 
@@ -915,6 +929,7 @@ namespace NWCTXT2Ly
 			}
 			LilyPondFile.WriteLine("  \\override PaperColumn #'keep-inside-line = ##t");
 			LilyPondFile.WriteLine("  \\override NonMusicalPaperColumn #'keep-inside-line = ##t");
+			LilyPondFile.Write(RemoveMark);
 
 			LilyPondFile.WriteLine("}");
 			LilyPondFile.WriteLine("{");
@@ -1342,6 +1357,7 @@ namespace NWCTXT2Ly
 			Regex FindMarkup = new Regex(@"(<m)([1-9])(>)([^\s^-]*)");
 			Regex FindVerse = new Regex(@"<verse\(([\w]+)\)>");
 			Regex FindMinHyp = new Regex(@"<minhyp\(([\w]+)\)>");
+			Regex FindMinHypOnce = new Regex(@"<minhyponce\(([\w]+)\)>");
 			Regex FindSuspendOutput = new Regex(@"<sus>.*?</sus>", RegexOptions.Singleline);
 
 			int LyricCount = 0;
@@ -1455,7 +1471,7 @@ namespace NWCTXT2Ly
 					string ThisNum = FindNumbersMatch.Result("$&");
 					if (!ThisNum.StartsWith("<verse("))  // Special case for verse numbers, so exclude them
 					{
-						if (ThisNum.IndexOf("<minhyp(") < 0) // Ditto special case for minimum length hyphens
+						if (ThisNum.IndexOf("<minhyp") < 0) // Ditto special case for minimum length hyphens
 						{
 							int Location = FindNumbersMatch.Index;
 							int MatchLen = FindNumbersMatch.Length;
@@ -1506,15 +1522,25 @@ namespace NWCTXT2Ly
 				}
 
 				Match MinHypPosMatch = FindMinHyp.Match(Input);
-				// Minimum hyphen length
-				while (MinHypPosMatch.Success)
+				if (MinHypPosMatch.Success)
 				{
 					string MinHypLen = MinHypPosMatch.Result("$1");
 					if (MinHypLen != "")
 					{
-						Input = Input.Replace("<minhyp(" + MinHypLen + ")>", " \\once \\override LyricHyphen.minimum-distance = #" + MinHypLen + " \r\n");
+						Input = Input.Replace("<minhyp(" + MinHypLen + ")>", " \\override LyricHyphen.minimum-distance = #" + MinHypLen + " \r\n");
 					}
-					MinHypPosMatch = FindMinHyp.Match(Input);
+				}
+
+				Match MinHypOncePosMatch = FindMinHypOnce.Match(Input);
+				// Minimum hyphen length
+				while (MinHypOncePosMatch.Success)
+				{
+					string MinHypLen = MinHypOncePosMatch.Result("$1");
+					if (MinHypLen != "")
+					{
+						Input = Input.Replace("<minhyponce(" + MinHypLen + ")>", " \\once \\override LyricHyphen.minimum-distance = #" + MinHypLen + " \r\n");
+					}
+					MinHypOncePosMatch = FindMinHypOnce.Match(Input);
 				}
 
 				Input = FindParen.Replace(Input, "$1\"$2\"$3");  // Replaces (text with "(text" - must be after verse stuff
